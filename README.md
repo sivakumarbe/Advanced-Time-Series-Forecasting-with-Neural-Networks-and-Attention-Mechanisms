@@ -1,265 +1,117 @@
-Project Overview
+Attention-LSTM Time Series Forecasting
 
-This project focuses on building an advanced forecasting model using LSTM (Long Short-Term Memory networks) enhanced with a self-attention mechanism to model complex, multivariate time series data.
-The final solution is compared against a strong baseline model (standard LSTM and Prophet). The goal is to demonstrate improvements in predictive accuracy, interpretability, and robustness using rigorous backtesting techniques.
+📌 Project Overview
 
-Additionally, the project includes a separate credit risk classification module using LightGBM + SHAP, showcasing black-box model interpretation techniques (global & local).
+This project implements a Deep Learning Time Series Forecasting pipeline designed to predict macroeconomic indicators (specifically Real GDP) using a Long Short-Term Memory (LSTM) network augmented with a Self-Attention Mechanism.
 
+The model is built using PyTorch and is benchmarked against a Standard LSTM (without attention) and Prophet (optional) to demonstrate the efficacy of attention mechanisms in capturing long-term dependencies and seasonal patterns in multivariate time series data.
 
-Production-Quality Python Code
+🚀 Key Features
 
-Full Project Code (Attention-LSTM + Baseline + Classification + Interpretability)
+Self-Attention Mechanism: A custom PyTorch module that weighs the importance of different time steps in the input sequence, allowing the model to focus on relevant historical context.
 
-The complete, modular Python code implementing:
+Multivariate Forecasting: Uses multiple macroeconomic variables (Consumption, Investment, CPI, Unemployment) to predict GDP.
 
-Time series preprocessing (lags, Fourier features, missing value handling, scaling)
+Robust Backtesting: Implements Rolling-Window Cross-Validation (3 sequential holdout folds) to ensure performance stability.
 
-LSTM + Self-Attention forecasting model
+Hyperparameter Optimization: Integrated Optuna support for Bayesian optimization of learning rate, hidden dimensions, dropout, and layers.
 
-Optuna hyperparameter tuning
+Production-Ready Pipeline: Single-file architecture including data loading, scaling, feature engineering, training, evaluation, and reporting.
 
-Rolling/expanding window backtesting
+📂 Dataset
 
-Baseline LSTM model
+The project uses the statsmodels.macrodata dataset, which contains US macroeconomic time series data since 1959.
 
-Credit risk classification using LightGBM
+Target: realgdp (Real Gross Domestic Product)
 
-Global interpretability using SHAP summary
+Features: realcons (Consumption), realinv (Investment), cpi (Inflation), unemp (Unemployment)
 
-Local interpretability using SHAP force plots
+Derived Features: Lags (1-4 quarters), Rolling Means, and Rolling Standard Deviations.
 
+🛠️ Installation & Requirements
 
-Technical Report (Markdown Format)
+Ensure you have Python 3.8+ installed. Install the dependencies using pip:
 
-1. Dataset Characteristics
-Forecasting Dataset
+pip install torch pandas numpy scikit-learn statsmodels matplotlib optuna tqdm
 
-Multivariate, quarterly macroeconomic time series (e.g., GDP, consumption, CPI, money supply).
 
-Ensures presence of:
+Optional (for baseline comparison):
 
-Non-linear dynamics
+pip install prophet
 
-Seasonality
 
-Long-term dependencies
+🏃‍♂️ Usage
 
-Data indexed by time and suitable for sequential modeling.
+The entire pipeline is contained within a single Python script. You can run it directly from the terminal or an IDE.
 
-Classification Dataset
+1. Standard Run
 
-Binary credit-risk dataset with numeric features:
+Runs the training and backtesting with default hyperparameters.
 
-age, income, loan_amount, months_since_loan, num_derog
+# Inside your script or main block
+run_pipeline(save_dir='./results', seq_len=8, tune=False)
 
-Target variable:
 
-1 = Default
+2. Run with Hyperparameter Tuning
 
-0 = Non-default
+Enables Optuna to search for the best model configuration before backtesting.
 
-2. Preprocessing Pipeline
+# Inside your script or main block
+run_pipeline(save_dir='./results_tuned', seq_len=8, tune=True)
 
-For Time Series Forecasting
 
-Step	Description
+📊 Methodology
 
-Missing Values	Time-based interpolation + forward/backward fill
+1. Data Preprocessing
 
-Seasonality Engineering	Fourier features added (sin/cos harmonics)
+Windowing: The data is transformed into sequences of length seq_len (default 8 quarters).
 
-Lag Features	Lags: 1, 2, 3, 4, 12
+Scaling: StandardScaler is fitted on the training split of each fold to prevent data leakage.
 
-Scaling	StandardScaler fitted only on training set
+Inverse Transformation: Predictions are inverse-transformed to their original scale (Real GDP values) for interpretable error metrics.
 
-Supervised Structure	Final shape: (samples, timesteps=1, features)
+2. Model Architecture
 
-For Credit Risk Classification
+Input Layer: Accepts sequence shape (Batch, Seq_Len, Features).
 
-Step	Description
+LSTM Layer: Processes temporal dependencies.
 
-Missing values	Median imputation
+Attention Layer: Computes a weighted sum of LSTM hidden states across all time steps.
 
-Categorical encoding	One-hot encoding
+$Score = H \cdot H^T$
 
-Scaling	StandardScaler
+$Weights = Softmax(Score)$
 
-Class imbalance	Optional undersampling/oversampling
+$Context = Weights \cdot H$
 
-Validation	Stratified train–test split
+Output Layer: Fully connected layer mapping the context vector to the target value.
 
-3. Model Development
-Attention-LSTM Model Architecture
+3. Evaluation Metrics
 
-Input LSTM (return sequences=True)
+The model is evaluated using the following metrics across all backtesting folds:
 
-Dropout
+MAE (Mean Absolute Error): Average magnitude of errors.
 
-Self-Attention Layer
+RMSE (Root Mean Squared Error): Penalizes larger errors.
 
-Dense (ReLU)
+CFE (Cumulative Forecast Error): Measures bias (over/under-prediction).
 
-Output: Linear regression for forecasting
+📈 Visualization
 
-Baseline Models
+The pipeline automatically generates comparison plots for each fold in the results directory:
 
-Standard LSTM (no attention)
+Black Line: True Historical GDP.
 
-Prophet (instructional baseline)
+Red Line: Attention-LSTM Prediction.
 
-4. Hyperparameter Optimization
-Optuna for Time Series Model
+Blue Dashed Line: Standard LSTM Prediction.
 
-parameters tuned:
+📁 Output Structure
 
-units  {32, 64, 128}
+After running the pipeline, a results folder is created:
 
-dropout  [0.0, 0.5]
-
-learning rate  [1e−4, 1e−2]
-
-batch size  {16, 32, 64}
-
-Optuna for LightGBM
-
-parameters tuned:
-
-num_leaves
-
-lambda_l1, lambda_l2
-
-learning_rate
-
-feature_fraction
-
-bagging_fraction
-
-min_child_samples
-
-5. Backtesting Methodology
-
-Rolling / Expanding Window Cross-Validation
-
-Initial training size: 60% of dataset
-
-4 evaluation folds
-
-Metrics computed per fold and aggregated
-
-Forecast Metrics
-
-Mean Absolute Error (MAE)
-
-Root Mean Square Error (RMSE)
-
-Cumulative Forecast Error (CFE)
-
-6. Model Performance Summary
-
- Forecasting Results (Example)
-
-Model	         MAE(Mean)	  RMSE(Mean)	CFE (Total)
-Attention-LSTM    0.0134	   0.0178	  +0.023
-Plain LSTM	  0.0151	   0.0203	  +0.080
-
-Conclusion: Attention-LSTM consistently outperforms the standard LSTM.
-
-Classification Metrics (Example)
-Metric	        Score
-AUC	        0.88
-Precision	0.64
-Recall	        0.71
-
-7. Global Feature Importance (SHAP Summary)
-
-Top 15 contributing features (example):
-
-| Rank |  Feature   |   Contribution (mean |SHAP|) |
-|------|----------  |------------------------------|
-|  1   |loan_amount |          highest             |
-|  2   |income      |      strong negative         |
-|  3   |num_derog   |       strong positive        |
-|  …   | …          |             …                |
- 
-
-Visual summary plot saved as:
-shap_summary.png
-
-8. Local Explanations (3 Customer Profiles)
-
-SHAP force plots generated for:
-
-      Case	                              Description
-High-risk approved	 Very high predicted risk, but actual decision approved
-Low-risk rejected	 Predicted low risk, but rejected
-Borderline               case Prediction ~0.5
-
-
-Business-Friendly Narratives
- 
-Case 1: High-Risk Approved
-
-High loan amount relative to income
-
-Past derogatory marks increase risk
- Recommendation: consider collateral, revised EMIs.
-
-Case 2: Low-Risk Rejected
-
-Strong income
-
-Clean payment history
- Recommendation: re-evaluate or approve at low rate.
-
-Case 3: Borderline
-
-Mixed risk indicators
- Recommendation: seek additional documents.
-
-
-Impact of Self-Attention Mechanism
-Why Attention Improves Forecasting
-
-
-Self-attention allows the model to:
-
-Identify important timesteps in the sequence
-
-Weight relevant lag features more strongly
-
-Capture long-term dependencies better than a plain LSTM
-
-Improve learning of seasonal patterns
-
-Observed Benefits
-
-Lower MAE and RMSE across all folds
-
-Reduced cumulative bias (lower CFE)
-
-More stable predictions during macroeconomic shocks
-
-Improves interpretability by exposing which timesteps/features the model focuses on
-
-Interpretability Note
-
-While attention is not a substitute for SHAP, both methods together:
-
-Validate temporal importance
-
-Highlight key lag dependencies
-
-Strengthen business trust in model reasoning
-
-
-Final Notes
-
-This project demonstrates:
-
-Modern deep learning forecasting methods
-
-Rigorous evaluation using backtesting
-
-Explainable AI for both forecasting and classification models
-
-End-to-end production-quality machine learning workflow
+results/
+├── fold0_preds.png      # Visualization of the first backtest fold
+├── results.json         # detailed metrics and configuration
+├── REPORT.md            # Auto-generated text summary of the run
+└── SUMMARY.md           # Conclusion on Attention mechanism impact
